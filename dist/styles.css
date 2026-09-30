@@ -115,6 +115,8 @@
 @media(prefers-reduced-motion:reduce){.floating-back-top,.floating-back-top svg,.floating-back-top span{transition:none}}
 .contact-details{margin-top:32px;padding-top:24px;border-top:1px solid #dce2e4;max-width:465px}
 .contact-details h3{font-size:16px;font-weight:500;color:#8e775b;margin-bottom:12px}
+.contact-details p{font-size:clamp(18px,2.2vw,24px);line-height:1.6;overflow-wrap:anywhere}
+.contact-details p+p{margin-top:10px}
 .contact-details a{font-size:clamp(18px,2.2vw,24px);line-height:1.6;overflow-wrap:anywhere;text-decoration:underline;text-decoration-color:#b9c3c7;text-underline-offset:6px}
 .contact-details a:hover{color:#8a6c49}
 .contact-details a:focus-visible{outline:3px solid #b79870;outline-offset:6px}
