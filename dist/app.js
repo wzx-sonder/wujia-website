@@ -117,35 +117,52 @@
     const url = content.links[link.dataset.visit];
     if(url) link.href = url;
   });
-  const editionButtons = [...document.querySelectorAll('[data-edition]')];
-  const educationPlay = document.getElementById('education-play');
-  function chooseEdition(button) {
-    const key = button.dataset.edition;
-    const video = content.videos[key];
-    editionButtons.forEach(item => {
-      const selected = item === button;
-      item.setAttribute('aria-selected', String(selected));
-      item.tabIndex = selected ? 0 : -1;
-    });
-    document.getElementById('education-panel').setAttribute('aria-labelledby', button.id);
-    const image = document.getElementById('education-poster');
-    image.src = video.poster;
-    image.alt = video.title + '产品演示';
-    educationPlay.dataset.video = key;
-    educationPlay.setAttribute('aria-label', '播放' + video.title + '宣传片');
-    document.getElementById('education-caption').textContent = key === 'school' ? '学校版 · 班级、任教与学情分析' : '教培机构版 · 校区、课程与课时管理';
-  }
-  editionButtons.forEach((button, index) => {
-    button.addEventListener('click', () => chooseEdition(button));
-    button.addEventListener('keydown', event => {
-      let next;
-      if(event.key === 'ArrowRight') next = (index + 1) % editionButtons.length;
-      if(event.key === 'ArrowLeft') next = (index + editionButtons.length - 1) % editionButtons.length;
-      if(event.key === 'Home') next = 0;
-      if(event.key === 'End') next = editionButtons.length - 1;
-      if(next !== undefined) { event.preventDefault(); chooseEdition(editionButtons[next]); editionButtons[next].focus(); }
+  // Scope version tabs to their own product; Campus editions have separate URLs.
+  document.querySelectorAll('[data-edition-group]').forEach(group => {
+    const product = group.dataset.editionGroup;
+    const buttons = [...group.querySelectorAll('[data-edition]')];
+    function chooseEdition(button) {
+      const key = button.dataset.edition;
+      const video = content.videos[key];
+      buttons.forEach(item => {
+        const selected = item === button;
+        item.setAttribute('aria-selected', String(selected));
+        item.tabIndex = selected ? 0 : -1;
+      });
+      document.getElementById(`${product}-panel`).setAttribute('aria-labelledby', button.id);
+      const image = document.getElementById(`${product}-poster`);
+      image.src = video.poster;
+      image.alt = video.title + '产品演示';
+      const play = document.getElementById(`${product}-play`);
+      play.dataset.video = key;
+      play.setAttribute('aria-label', '播放 ' + video.title + '宣传片');
+      document.getElementById(`${product}-caption`).textContent = video.caption;
+      document.getElementById(`${product}-duration`).textContent = video.duration;
+      if(product === 'campus') {
+        const visit = document.getElementById('campus-visit');
+        visit.href = content.links[key];
+        visit.dataset.visit = key;
+        document.getElementById('campus-visit-label').textContent = video.visitLabel;
+        document.getElementById('campus-lead').textContent = video.lead;
+        document.getElementById('campus-description').textContent = video.intro;
+      }
+    }
+    buttons.forEach((button, index) => {
+      button.addEventListener('click', () => chooseEdition(button));
+      button.addEventListener('keydown', event => {
+        let next;
+        if(event.key === 'ArrowRight') next = (index + 1) % buttons.length;
+        if(event.key === 'ArrowLeft') next = (index + buttons.length - 1) % buttons.length;
+        if(event.key === 'Home') next = 0;
+        if(event.key === 'End') next = buttons.length - 1;
+        if(next !== undefined) { event.preventDefault(); chooseEdition(buttons[next]); buttons[next].focus(); }
+      });
     });
   });
+  document.querySelectorAll('[data-campus-edition]').forEach(link => link.addEventListener('click', event => {
+    if(event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    document.getElementById(`edition-${link.dataset.campusEdition}`).click();
+  }));
   const dialog = document.getElementById('video-dialog');
   const player = document.getElementById('player');
   const videoError = document.getElementById('video-error');

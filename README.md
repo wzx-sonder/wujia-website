@@ -4,6 +4,8 @@
 
 线上地址：https://wujia-ai.g1304458637.chatgpt.site/
 
+Campus AI 提供 HUBU 校园版和 KCode 商业版。官网中的版本切换会同步更新介绍、宣传片及访问入口：校园版为 https://hubu.wuxuexi.top/ ，商业版为 https://api.wuxuexi.top/ 。KCode 也展示在产品菜单与短片区中。
+
 ## 项目结构
 
 - `dist/index.html`：页面正文与导航。

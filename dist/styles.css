@@ -130,3 +130,6 @@
 .play-small .icon,.film-play .icon{display:block;width:12px;height:12px}
 .media-play .icon{width:11px;height:11px}
 .main-nav .icon{width:10px;height:10px}
+
+/* Five films share the existing card treatment; compact screens retain two columns. */
+@media(min-width:1241px){.film-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
