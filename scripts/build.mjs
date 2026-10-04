@@ -3,6 +3,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { products, legacyRoutes } from '../src/products.mjs';
+import { entries, mainNavigation, playLabel } from '../src/navigation.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = path.join(root, 'dist');
@@ -30,23 +31,30 @@ const icons = {
 function icon(name) {
   return `<svg class="icon icon-${name}" viewBox="0 0 24 24" width="24" height="24" ${name === 'play' ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'} aria-hidden="true" focusable="false">${icons[name]}</svg>`;
 }
-const navItems = [['about', '认识悟佳'], ['products', '产品与项目'], ['ai', 'AI 能力'], ['studio', 'AI+X 共创'], ['vision', '发展愿景']];
+const navItems = mainNavigation.map(key => [key, entries[key].label]);
+function entryLink(key, className = 'text-link', withArrow = true) {
+  const { label, href } = entries[key];
+  return `<a class="${className}" href="${href}">${label}${withArrow ? ` <span>${icon('arrow')}</span>` : ''}</a>`;
+}
+function navEntry(key, page, className) {
+  const { label, href } = entries[key];
+  if (page.route === href) return `<span class="${className}" aria-current="page">${label}</span>`;
+  return `<a class="${className}${page.active === key ? ' is-ancestor' : ''}" href="${href}">${label}</a>`;
+}
 const brand = `<a class="brand" href="/" aria-label="武汉悟佳教育咨询有限公司 首页"><img class="brand-logo" src="/assets/wuxuexi-mark-transparent.png" width="52" height="40" alt=""><span>武汉悟佳教育咨询有限公司</span></a>`;
-function header(active) {
-  const navigation = navItems.map(([key, label]) => {
-    const link = `<a href="/${key}/"${key === active ? ' aria-current="page"' : ''}>${label}</a>`;
+function header(page) {
+  const navigation = mainNavigation.map(key => {
+    const link = navEntry(key, page, 'nav-link');
     return key === 'products' ? `<div class="nav-product-group">${link}<button class="nav-dropdown" type="button" data-menu="products" aria-label="展开产品快捷入口" aria-expanded="false" aria-controls="menu-products">${icon('chevron')}</button></div>` : link;
   }).join('');
-  return `<header class="site-header"><div class="header-inner">${brand}<nav class="main-nav" aria-label="主导航">${navigation}</nav><a class="header-link" href="/films/"${active === 'films' ? ' aria-current="page"' : ''}>观看短片 <span>${icon('arrow')}</span></a></div>
-  <div class="mega-menu" id="menu-products" hidden><div class="mega-inner"><div><span class="eyebrow">PRODUCTS & PROJECTS</span><h2>真实的问题，<br>正在发生的实践。</h2><a class="text-link menu-all" href="/products/">查看全部产品</a></div><div class="menu-links"><a href="/products/wuxuexi/">悟学习 <span>教学协同与学习支持</span></a><a href="/products/campus-ai/">Campus AI · 校园版 <span>HUBU · 模型资源与工程工具</span></a><a href="/products/campus-ai/?edition=kcode">KCode · 商业版 <span>同一产品，面向商业应用</span></a><a href="/products/toujing/">投镜 <span>历史投资复盘 · 测试验证中</span></a></div></div></div><div class="reading-progress" aria-hidden="true"></div></header><div class="menu-shade" hidden></div>`;
+  const films = page.route === entries.films.href ? navEntry('films', page, 'header-link') : entryLink('films', 'header-link');
+  const shortcuts = [['wuxuexi', '学校版与教培机构版'], ['hubu', '模型资源与工程工具'], ['kcode', '同一产品，面向商业应用'], ['toujing', '历史投资复盘 · 测试验证中']].map(([key, description]) => `<a href="${entries[key].href}">${entries[key].label} <span>${description}</span></a>`).join('');
+  return `<header class="site-header"><div class="header-inner">${brand}<nav class="main-nav" aria-label="主导航">${navigation}</nav>${films}</div>
+  <div class="mega-menu" id="menu-products" hidden><div class="mega-inner"><div><span class="eyebrow">PRODUCTS & PROJECTS</span><h2>真实的问题，<br>正在发生的实践。</h2></div><div class="menu-links">${shortcuts}</div></div></div><div class="reading-progress" aria-hidden="true"></div></header><div class="menu-shade" hidden></div>`;
 }
-function links(html, route) {
-  return html.replace(/(src|poster)="assets\//g, '$1="/assets/').replace(/href="#([^"]+)"/g, (match, id) => {
-    const target = legacyRoutes[id];
-    if (!target) return match;
-    const [pathname, hash] = target.split('#');
-    return `href="${pathname === route && hash ? '#' + hash : target}"`;
-  });
+function links(html) {
+  // Content writes explicit page URLs; tokens only share the visible entry label.
+  return html.replace(/(src|poster)="assets\//g, '$1="/assets/').replace(/\{\{label:([\w-]+)\}\}/g, (_, key) => escape(entries[key].label));
 }
 function breadcrumbs(items) {
   return `<nav class="breadcrumbs" aria-label="面包屑"><ol><li><a href="/">首页</a></li>${items.map(([label, href]) => `<li>${href ? `<a href="${href}">${label}</a>` : `<span aria-current="page">${label}</span>`}</li>`).join('')}</ol></nav>`;
@@ -65,8 +73,7 @@ async function section(id, route, openingLabel) {
 function productCards() {
   return `<div class="product-overviews">${products.map(p => {
     const video = content.videos[p.defaultVideo];
-    const href = `/products/${p.slug}/`;
-    return `<article class="product overview-card"><a class="overview-image" href="${href}" aria-label="了解${p.title}"><img src="${video.poster}" width="1440" height="810" loading="lazy" alt="${video.title}产品界面"></a><div class="overview-copy"><p class="product-kicker">${p.kicker}</p><h2><a href="${href}">${p.title}</a></h2><p class="overview-tagline">${p.tagline}</p><p class="overview-summary">${p.summary}</p><div class="edition-tags">${p.editions ? p.editions.map(([, label]) => `<span>${label}</span>`).join('') : '<span>测试验证中</span>'}</div><a class="text-link" href="${href}">了解详情 <span>${icon('arrow')}</span></a></div></article>`;
+    return `<article class="product overview-card"><div class="overview-image"><img src="${video.poster}" width="1440" height="810" loading="lazy" alt="${video.title}产品界面"></div><div class="overview-copy"><p class="product-kicker">${p.kicker}</p><h2>${p.title}</h2><p class="overview-tagline">${p.tagline}</p><p class="overview-summary">${p.summary}</p><div class="edition-tags">${p.editions ? p.editions.map(([, label]) => `<span>${label}</span>`).join('') : '<span>测试验证中</span>'}</div>${entryLink(p.id)}</div></article>`;
   }).join('')}</div>`;
 }
 function productBackground(inner, extra = '') {
@@ -76,18 +83,17 @@ async function productDetail(p) {
   const video = content.videos[p.defaultVideo];
   const group = p.group || p.id;
   const tabs = p.editions ? `<div class="edition-tabs" data-edition-group="${group}" role="tablist" aria-label="${p.title}产品版本">${p.editions.map(([key, label], i) => `<button type="button" role="tab" id="edition-${key}" aria-selected="${i === 0}"${i ? ' tabindex="-1"' : ''} aria-controls="${group}-panel" data-edition="${key}">${label}</button>`).join('')}</div>` : '';
-  const media = `<button class="media-button" id="${group}-play" data-video="${p.defaultVideo}" aria-label="播放 ${video.title}宣传片"><img id="${group}-poster" src="${video.poster}" alt="${video.title}产品演示" width="1440" height="810" fetchpriority="high"><span class="media-play">${icon('play')} 观看产品短片</span></button>`;
+  const media = `<button class="media-button" id="${group}-play" data-video="${p.defaultVideo}" aria-label="播放 ${video.title}宣传片"><img id="${group}-poster" src="${video.poster}" alt="${video.title}产品演示" width="1440" height="810" fetchpriority="high"><span class="media-play">${icon('play')} ${playLabel}</span></button>`;
   return productBackground(`${breadcrumbs([['产品与项目', '/products/'], [p.title]])}
     <article class="product product-full" id="${p.id}"><div class="product-top"><div><p class="product-kicker">${p.kicker}${p.status ? ` <span class="status-tag">${p.status}</span>` : ''}</p><h1>${p.title}</h1><p class="product-line">${p.tagline}</p></div><a class="button ink" id="${group}-visit" data-visit="${p.visit}" href="${content.links[p.visit]}" target="_blank" rel="noopener noreferrer"><span id="${group}-visit-label">${p.visitLabel || video.visitLabel}</span><span>${icon('arrow')}</span></a></div>
-    ${tabs}<div class="product-body"${p.editions ? ` id="${group}-panel" role="tabpanel" aria-labelledby="edition-${p.defaultVideo}" tabindex="0"` : ''}><div class="product-media">${media}<div class="media-label"><span id="${group}-caption">${video.caption}</span><span id="${group}-duration">${video.duration}</span></div></div><div class="product-detail"><p class="product-lead" id="${group}-lead">${p.lead || video.lead}</p><p id="${group}-description">${p.intro || video.intro}</p>${await read(`products/${p.id}-features.html`)}</div></div>${await read(`products/${p.id}-footer.html`)}</article><div class="detail-exit"><a class="text-link" href="/products/">返回产品列表</a><a class="text-link" href="/films/">观看全部项目短片</a></div>`, 'product-detail-page');
+    ${tabs}<div class="product-body"${p.editions ? ` id="${group}-panel" role="tabpanel" aria-labelledby="edition-${p.defaultVideo}" tabindex="0"` : ''}><div class="product-media">${media}<div class="media-label"><span id="${group}-caption">${video.caption}</span><span id="${group}-duration">${video.duration}</span></div></div><div class="product-detail"><p class="product-lead" id="${group}-lead">${p.lead || video.lead}</p><p id="${group}-description">${p.intro || video.intro}</p>${await read(`products/${p.id}-features.html`)}</div></div>${await read(`products/${p.id}-footer.html`)}</article><div class="detail-exit"><a class="text-link" href="/products/">返回产品列表</a>${entryLink('films', 'text-link', false)}</div>`, 'product-detail-page');
 }
 async function home() {
-  let hero = links(await read('sections/hero.html'), '/');
-  hero = hero.replace('href="/about/">向下探索', 'href="#overview">向下探索');
+  const hero = links(await read('sections/hero.html'));
   return `${hero}
-  <section class="section wrap home-about" id="overview"><div class="section-head"><div><p class="eyebrow">ABOUT WUJIA</p><h2>从教育出发，<br>让创造发生。</h2></div><div class="section-intro"><p>武汉悟佳教育咨询有限公司，围绕教育产品、AI 应用与跨学科项目开展实践。</p><p>连接真实需求、工程能力和人的专业知识，让想法成为可使用、可验证的成果。</p><a class="text-link" href="/about/">认识悟佳 <span>${icon('arrow')}</span></a></div></div></section>
-  ${productBackground(`<div class="section-head"><div><p class="eyebrow">PRODUCTS & PROJECTS</p><h2>聚焦真实需求，<br>构建应用价值。</h2></div><div class="section-intro"><p>教育、开发与历史复盘。<br>在具体场景里，探索 AI 的实际价值。</p><a class="text-link" href="/products/">全部产品与项目 <span>${icon('arrow')}</span></a></div></div>${productCards()}`, 'home-products')}
-  <section class="section home-capabilities"><div class="wrap home-paths"><article><p class="eyebrow">AI, PUT TO WORK</p><h2>让模型能力，<br>进入实际工作。</h2><p>从模型接入到工具调用，再到工程实现。让 AI 与专业知识一起工作，把原型推进到可使用的产品。</p><a class="text-link" href="/ai/">了解 AI 能力 <span>${icon('arrow')}</span></a></article><article><p class="eyebrow">AI + YOUR EXPERTISE</p><h2>每一种专业，<br>都有创造的可能。</h2><p>以湖北大学的校园实践为起点，连接技术、设计、商业、科研和传媒等不同方向的伙伴，共同完成真实项目。</p><a class="text-link" href="/studio/">走进 AI+X 智创工场 <span>${icon('arrow')}</span></a></article></div></section>
+  <section class="section wrap home-about" id="overview"><div class="section-head"><div><p class="eyebrow">ABOUT WUJIA</p><h2>从教育出发，<br>让创造发生。</h2></div><div class="section-intro"><p>武汉悟佳教育咨询有限公司，围绕教育产品、AI 应用与跨学科项目开展实践。</p><p>连接真实需求、工程能力和人的专业知识，让想法成为可使用、可验证的成果。</p></div></div></section>
+  ${productBackground(`<div class="section-head"><div><p class="eyebrow">PRODUCTS & PROJECTS</p><h2>聚焦真实需求，<br>构建应用价值。</h2></div><div class="section-intro"><p>教育、开发与历史复盘。<br>在具体场景里，探索 AI 的实际价值。</p>${entryLink('products')}</div></div>${productCards()}`, 'home-products')}
+  <section class="section home-capabilities"><div class="wrap home-paths"><article><p class="eyebrow">AI, PUT TO WORK</p><h2>让模型能力，<br>进入实际工作。</h2><p>从模型接入到工具调用，再到工程实现。让 AI 与专业知识一起工作，把原型推进到可使用的产品。</p>${entryLink('ai')}</article><article><p class="eyebrow">AI + YOUR EXPERTISE</p><h2>每一种专业，<br>都有创造的可能。</h2><p>以湖北大学的校园实践为起点，连接技术、设计、商业、科研和传媒等不同方向的伙伴，共同完成真实项目。</p>${entryLink('studio')}</article></div></section>
   ${await section('contact', '/')}`;
 }
 const pages = [
@@ -102,10 +108,10 @@ const pages = [
 for (const p of products) pages.push({route: `/products/${p.slug}/`, active: 'products', title: `${p.title} · ${p.tagline}`, description: p.summary, body: await productDetail(p), hasVideo: true});
 
 for (const page of pages) {
-  const footer = links(await read('partials/footer.html'), page.route).replace('class="brand" href="#top"', 'class="brand" href="/"');
+  const footer = links(await read('partials/footer.html')).replace('{{footerNavigation}}', mainNavigation.map(key => navEntry(key, page, 'footer-link')).join(''));
   const html = `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#111c25"><meta name="description" content="${escape(page.description)}"><title>${escape(page.title)}${page.route === '/' ? '' : ' — 悟佳'}</title><link rel="icon" type="image/png" href="/assets/wuxuexi-mark-transparent.png"><link rel="stylesheet" href="/styles.css">${page.route === '/' ? '<script src="/legacy.js"></script>' : ''}<script src="/content.js" defer></script><script src="/app.js" defer></script></head>
-<body id="top" class="${page.className || 'interior-page'}" data-page="${page.active || 'home'}"><a class="skip-link" href="#main">跳至主要内容</a>${header(page.active)}<main id="main">${page.body}</main>${footer}${page.hasVideo ? await read('partials/video-dialog.html') : ''}${await read('partials/back-top.html')}</body></html>\n`;
+<body id="top" class="${page.className || 'interior-page'}" data-page="${page.active || 'home'}"><a class="skip-link" href="#main">跳至主要内容</a>${header(page)}<main id="main">${page.body}</main>${footer}${page.hasVideo ? await read('partials/video-dialog.html') : ''}${await read('partials/back-top.html')}</body></html>\n`;
   await write(page.route.slice(1) + 'index.html', html);
 }
 await write('content.js', `window.WUJIA_CONTENT = ${JSON.stringify(content, null, 2)};\n`);

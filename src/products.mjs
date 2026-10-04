@@ -23,11 +23,11 @@ export const products = [
     defaultVideo: 'toujing', status: '测试验证中',
     lead: '用历史记录，理解过去的行为与选择。',
     intro: '由团队成员开展的项目实践，围绕股票历史交易记录进行整理、可视化与复盘，持续验证使用体验。',
-    visit: 'toujing', visitLabel: '探索投镜'
+    visit: 'toujing', visitLabel: '访问投镜'
   }
 ];
 
-// Shared by legacy homepage redirects and links in the confirmed content fragments.
+// Compatibility for incoming links shared before the multipage website.
 export const legacyRoutes = {
   approach: '/about/', company: '/about/', assets: '/about/#assets', contact: '/about/#contact',
   products: '/products/', wuxuexi: '/products/wuxuexi/', campus: '/products/campus-ai/',
