@@ -3,6 +3,9 @@
 .main-nav .nav-link:after{content:"";position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--ink);transform:scaleX(0);transition:transform .2s}
 .main-nav a:hover:after,.main-nav .nav-link[aria-current=page]:after,.main-nav .nav-link.is-ancestor:after{transform:scaleX(1)}
 .nav-product-group{display:flex;align-items:stretch}
+.redirect-notice{max-width:700px;margin:15vh auto;padding:32px}
+.redirect-notice h1{font-size:30px;line-height:1.5;margin:24px 0}
+.redirect-notice p{margin-bottom:24px}
 .nav-dropdown{display:flex;align-items:center;justify-content:center;width:28px;min-height:44px;border:0;padding:0;background:none;border-radius:4px}
 .nav-dropdown .icon{transition:transform .2s}
 .nav-dropdown[aria-expanded=true] .icon{transform:rotate(180deg)}
@@ -73,3 +76,37 @@
 .footer-link[aria-current=page],.footer-link.is-ancestor{color:var(--ink);text-decoration:underline;text-underline-offset:6px}
 .film-card h3{display:flex;flex-wrap:wrap;align-items:baseline}.film-card h3 .film-action{display:inline-block;font-size:12px;white-space:nowrap;color:#63727b}
 @media(max-width:600px){.film-card h3 .film-action{font-size:10px}}
+.studio-section + .capability-section{padding-top:0}.studio-section + .capability-section>.wrap{border-top:1px solid #43515c;padding-top:80px}
+@media(max-width:600px){.studio-section + .capability-section>.wrap{padding-top:40px}}
+
+/* Concrete project foundations and development priorities. */
+.studio-intro p+p,.vision-section .section-intro p+p,.vision-path p+p{margin-top:18px}
+.practice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.practice-grid article{display:flex;flex-direction:column;align-items:flex-start;padding:30px;border:1px solid #43515c;border-radius:7px;background:#1b303e}
+.practice-grid .practice-kicker{font-size:11px;letter-spacing:.08em;color:#d0b593}
+.practice-grid h3{font-size:27px;font-weight:500;margin:17px 0}
+.practice-grid p{font-size:15px;line-height:1.95;color:#b1c2cd}
+.practice-grid .practice-value{border-top:1px solid #43515c;padding-top:20px;margin:22px 0 26px}
+.practice-value strong,.capability-delivery strong{display:block;color:#f4f6f6;font-size:13px;font-weight:500;margin-bottom:9px}
+.practice-grid .text-link{margin-top:auto;font-size:14px}
+.studio-section .scenario-heading{margin-top:64px}
+.studio-section .audience-grid{margin-top:0}
+.studio-section .audience-grid p,.studio-section .scenario-grid p{font-size:15px}
+.studio-section .scenario-grid small{font-size:12px}
+.capability-grid p{font-size:15px;line-height:1.95}
+.capability-delivery{margin-top:22px;padding-top:20px;border-top:1px solid #43515c}
+.capability-basis{font-size:13px;color:#b1c2cd;line-height:1.9;margin-top:30px;max-width:900px}
+.vision-path p{font-size:15px}
+.vision-priorities{padding:20px 0 0 18px;margin:23px 0 0;border-top:1px solid #dce2e4;font-size:13px;line-height:1.85;color:#52656f}
+.vision-priorities li+li{margin-top:9px}
+.vision-priorities li::marker{color:#a88d66}
+.vision-criteria{display:grid;grid-template-columns:1fr 1.3fr;gap:70px;margin-top:70px;padding:42px;background:#f3f0ea;border:1px solid #e2ddd3;border-radius:7px}
+.vision-criteria .eyebrow{font-size:10px;color:#8b7559}
+.vision-criteria h3{font-size:28px;font-weight:500;line-height:1.5;margin:20px 0}
+.vision-criteria p,.vision-criteria dd{font-size:15px;line-height:1.95;color:#627178}
+.vision-criteria dl{margin:0}
+.vision-criteria dl>div+div{border-top:1px solid #d5d0c6;margin-top:22px;padding-top:22px}
+.vision-criteria dt{font-size:18px;font-weight:500;margin-bottom:8px}
+.vision-criteria dd{margin:0}
+@media(max-width:1000px){.practice-grid{gap:16px}.practice-grid article{padding:24px}.vision-criteria{gap:36px;padding:32px}.studio-section .scenario-heading{display:block}.studio-section .scenario-heading p{margin-top:12px}}
+@media(max-width:700px){.practice-grid{grid-template-columns:1fr}.practice-grid article{padding:26px}.studio-intro p{font-size:16px}.studio-section .scenario-heading{margin-top:44px}.studio-section .scenario-heading h3{font-size:22px}.studio-section .scenario-grid{grid-template-columns:1fr}.studio-section .scenario-grid small{margin-top:18px}.vision-criteria{grid-template-columns:1fr;gap:30px;padding:26px;margin-top:44px}.vision-criteria h3{font-size:27px}.vision-priorities{font-size:14px}.vision-path p,.vision-criteria p,.vision-criteria dd{font-size:16px}}

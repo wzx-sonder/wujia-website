@@ -4,11 +4,13 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { legacyRoutes } from '../src/products.mjs';
+import { entries, mainNavigation, compatibilityPages } from '../src/navigation.mjs';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const files = await fs.readdir(root, { recursive: true });
 const pages = files.filter(file => file.endsWith('.html'));
-assert.equal(pages.length, 10, 'Ten independently accessible pages');
+assert.equal(pages.length, 11, 'Eight content pages and three compatibility pages');
+const compatibilityFiles = new Set(compatibilityPages.map(page => page.route.slice(1) + 'index.html'));
 const documents = new Map();
 const titles = new Set();
 for (const file of pages) {
@@ -23,7 +25,10 @@ for (const file of pages) {
   for (const match of html.matchAll(/\baria-(?:controls|labelledby)="([^"]+)"/g)) {
     for (const id of match[1].split(' ')) assert(ids.includes(id), `${file}: missing ARIA target ${id}`);
   }
-  assert.equal((html.match(/data-menu=/g) || []).length, 1, `${file}: only product dropdown`);
+  const compatibility = compatibilityFiles.has(file.replaceAll('\\', '/'));
+  assert.equal((html.match(/data-menu=/g) || []).length, compatibility ? 0 : 1, `${file}: only product dropdown`);
+  assert(!html.includes('menu-studio'), `${file}: no studio dropdown`);
+  if (compatibility) assert(html.includes('id="continue-link"') && html.includes('src="/redirects.js"') && !html.includes('site-header'), `${file}: lightweight compatibility page`);
   documents.set(file.replaceAll('\\', '/'), { html, ids });
 }
 let linkCount = 0;
@@ -68,8 +73,8 @@ assert(!campus.includes('data-edition="school"') && !education.includes('data-ed
 // Check the visitor-facing contract, not just whether destinations exist.
 const text = html => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 const navigation = [
-  ['about', '认识悟佳', '从一个教育场景'], ['products', '产品与项目', '聚焦真实需求'],
-  ['ai', 'AI 能力', '模型是起点'], ['studio', 'AI+X 共创', '每一种专业'],
+  ['products', '产品与项目', '聚焦真实需求'],
+  ['studio', 'AI+X 共创', 'AI 应用研发与'],
   ['vision', '发展愿景', '从校园出发'], ['films', '项目短片', '让产品']
 ];
 const detailEntries = [
@@ -82,6 +87,8 @@ const labelsByUrl = new Map([
   ['/products/campus-ai/?edition=kcode', ['KCode 商业版']]
 ]);
 for (const [file, { html }] of documents) {
+  if (compatibilityFiles.has(file)) continue;
+  assert(!/href="\/(?:about|ai|studio\/ai)\//.test(html), `${file}: content must use canonical destinations`);
   for (const link of html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
     const allowed = labelsByUrl.get(link[1]);
     if (allowed) {
@@ -94,15 +101,19 @@ for (const [file, { html }] of documents) {
   assert(!html.includes('{{'), `${file}: unresolved template label`);
   const mainNav = html.match(/<nav class="main-nav"[^>]*>([\s\S]*?)<\/nav>/)[1];
   const footerNav = html.match(/<nav class="footer-links"[^>]*>([\s\S]*?)<\/nav>/)[1];
+  for (const [nav, className] of [[mainNav, 'nav-link'], [footerNav, 'footer-link']]) {
+    const labels = [...nav.matchAll(new RegExp(`<(?:a|span) class="${className}[^\"]*"[^>]*>(.*?)</(?:a|span)>`, 'gs'))].map(match => text(match[1]));
+    assert.deepEqual(labels, mainNavigation.map(key => entries[key].label), `${file}: four canonical columns`);
+  }
   const route = '/' + file.replace(/index\.html$/, '');
-  const current = route === '/' ? ['home', '首页'] : navigation.find(([key]) => route === `/${key}/`);
+  const current = route === '/' ? ['home', '首页'] : navigation.find(([key]) => mainNavigation.includes(key) && route === `/${key}/`);
   if (current && current[0] !== 'films') {
     for (const nav of [mainNav, footerNav]) {
       assert(nav.includes(`aria-current="page">${current[1]}</span>`), `${file}: static current item`);
       assert(!nav.includes(`href="${route}"`), `${file}: current nav reloads itself`);
     }
   } else {
-    assert(!mainNav.includes('aria-current="page"') && !footerNav.includes('aria-current="page"'), `${file}: ancestor is not exact current page`);
+    assert(!/<span class="nav-link" aria-current="page"/.test(mainNav) && !footerNav.includes('aria-current="page"'), `${file}: ancestor is not exact current page`);
   }
   if (file.startsWith('products/') && file !== 'products/index.html') {
     assert(mainNav.includes('href="/products/"') && footerNav.includes('href="/products/"'), `${file}: list remains reachable`);
@@ -128,7 +139,7 @@ for (const file of ['index.html', 'products/index.html']) {
     assert(!/<a[^>]*class="overview-image"|<h2>\s*<a/.test(html), `${file}: title/poster is static`);
   });
 }
-for (const file of ['index.html', 'about/index.html']) {
+for (const file of ['index.html']) {
   const html = documents.get(file).html;
   const directions = [...html.matchAll(/<article class="contact-direction">(.*?)<\/article>/gs)];
   assert.equal(directions.length, 3);
@@ -136,11 +147,26 @@ for (const file of ['index.html', 'about/index.html']) {
   assert(html.includes('QQ：1304458637') && html.includes('邮箱：<a href="mailto:2519552236@qq.com"'), `${file}: contacts preserved`);
 }
 const homeMain = documents.get('index.html').html.match(/<main[^>]*>(.*?)<\/main>/s)[1];
-assert.equal((homeMain.match(/href="\/about\/"/g) || []).length, 1, 'Homepage keeps only hero company CTA');
+assert.equal((homeMain.match(/href="#approach"/g) || []).length, 1, 'Hero company action scrolls to introduction');
+assert(!homeMain.includes('向下探索') && !homeMain.includes('让校园创造力'), 'Removed obsolete hero copy and exploration link');
+assert(!homeMain.includes('home-capabilities') && !homeMain.includes('home-about'), 'No duplicate homepage summaries');
+assert.deepEqual([...homeMain.matchAll(/<section\b[^>]*class="([^"]*)"[^>]*>/g)].map(match => match[1]), ['hero', 'section wrap', 'products-section section home-products', 'assets-section section', 'contact-section section wrap']);
+assert.equal((homeMain.match(/id="contact"/g) || []).length, 1);
+assert(homeMain.includes('Campus AI 详情') && homeMain.includes('P') && homeMain.includes('id="assets"'));
+const studio = documents.get('studio/index.html').html;
+assert(!studio.includes('studio-ai-summary'), 'No duplicate AI summary');
+assert.deepEqual([...studio.matchAll(/<section[^>]*id="([^"]+)"/g)].map(match => match[1]), ['studio', 'capabilities', 'method'], 'AI content follows studio introduction and precedes project method');
+assert.equal((studio.match(/id="workflow"/g) || []).length, 1, 'Complete AI workflow appears once');
+for (const page of compatibilityPages) for (const target of [page.destination, ...Object.values(page.fragments)]) {
+  const url = new URL(target, 'https://local.test');
+  const document = documents.get(url.pathname.slice(1) + 'index.html');
+  assert(document && (!url.hash || document.ids.includes(url.hash.slice(1))), `Compatibility target ${target}`);
+}
+assert(['approach', 'assets', 'contact'].every(id => !(id in legacyRoutes)), 'Real homepage anchors never redirect');
 assert(documents.get('films/index.html').html.includes('<span class="header-link" aria-current="page">项目短片</span>'));
 assert.equal((documents.get('films/index.html').html.match(/class="film-action">播放宣传片/g) || []).length, 5);
 for (const file of await fs.readdir(path.join(root, '../src/sections'))) {
   const html = await fs.readFile(path.join(root, '../src/sections', file), 'utf8');
   for (const [, id] of html.matchAll(/href="#([^"]+)"/g)) assert(!(id in legacyRoutes), `${file}: obsolete fragment in current content`);
 }
-console.log(`Verified ${pages.length} pages, ${linkCount} internal links/assets, semantic navigation, single-entry cards, current-page states, all legacy routes and five local films.`);
+console.log(`Verified 8 content pages and 3 compatibility pages, ${linkCount} internal links/assets, four-column navigation, integrated AI content, single-entry cards, all legacy routes and five local films.`);

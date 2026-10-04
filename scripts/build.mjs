@@ -3,7 +3,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { products, legacyRoutes } from '../src/products.mjs';
-import { entries, mainNavigation, playLabel } from '../src/navigation.mjs';
+import { entries, mainNavigation, pageHierarchy, compatibilityPages, playLabel } from '../src/navigation.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = path.join(root, 'dist');
@@ -31,7 +31,6 @@ const icons = {
 function icon(name) {
   return `<svg class="icon icon-${name}" viewBox="0 0 24 24" width="24" height="24" ${name === 'play' ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'} aria-hidden="true" focusable="false">${icons[name]}</svg>`;
 }
-const navItems = mainNavigation.map(key => [key, entries[key].label]);
 function entryLink(key, className = 'text-link', withArrow = true) {
   const { label, href } = entries[key];
   return `<a class="${className}" href="${href}">${label}${withArrow ? ` <span>${icon('arrow')}</span>` : ''}</a>`;
@@ -64,7 +63,10 @@ async function section(id, route, openingLabel) {
   if (openingLabel) {
     html = html.replace('class="', 'class="page-opening ').replace(/<h2(\s[^>]*)?>/, '<h1$1>').replace('</h2>', '</h1>');
     html = html.replace(/(<p class="eyebrow">)[^<]+/, `$1${openingLabel}`);
-    const crumb = breadcrumbs([[navItems.find(([key]) => route === `/${key}/`)?.[1] || '项目短片']]);
+    const key = Object.keys(pageHierarchy).find(key => entries[key].href === route);
+    const hierarchy = pageHierarchy[key];
+    if (!hierarchy) throw new Error(`Missing page hierarchy: ${route}`);
+    const crumb = breadcrumbs(hierarchy.map((key, index) => [entries[key].label, index < hierarchy.length - 1 ? entries[key].href : undefined]));
     html = html.includes('<div class="wrap">') ? html.replace('<div class="wrap">', `<div class="wrap">${crumb}`) : html.replace(/(<section[^>]+>)/, `$1${crumb}`);
   }
   // Section labels remain meaningful when they no longer appear on one numbered page.
@@ -91,18 +93,16 @@ async function productDetail(p) {
 async function home() {
   const hero = links(await read('sections/hero.html'));
   return `${hero}
-  <section class="section wrap home-about" id="overview"><div class="section-head"><div><p class="eyebrow">ABOUT WUJIA</p><h2>从教育出发，<br>让创造发生。</h2></div><div class="section-intro"><p>武汉悟佳教育咨询有限公司，围绕教育产品、AI 应用与跨学科项目开展实践。</p><p>连接真实需求、工程能力和人的专业知识，让想法成为可使用、可验证的成果。</p></div></div></section>
+  ${await section('approach', '/')}
   ${productBackground(`<div class="section-head"><div><p class="eyebrow">PRODUCTS & PROJECTS</p><h2>聚焦真实需求，<br>构建应用价值。</h2></div><div class="section-intro"><p>教育、开发与历史复盘。<br>在具体场景里，探索 AI 的实际价值。</p>${entryLink('products')}</div></div>${productCards()}`, 'home-products')}
-  <section class="section home-capabilities"><div class="wrap home-paths"><article><p class="eyebrow">AI, PUT TO WORK</p><h2>让模型能力，<br>进入实际工作。</h2><p>从模型接入到工具调用，再到工程实现。让 AI 与专业知识一起工作，把原型推进到可使用的产品。</p>${entryLink('ai')}</article><article><p class="eyebrow">AI + YOUR EXPERTISE</p><h2>每一种专业，<br>都有创造的可能。</h2><p>以湖北大学的校园实践为起点，连接技术、设计、商业、科研和传媒等不同方向的伙伴，共同完成真实项目。</p>${entryLink('studio')}</article></div></section>
+  ${await section('assets', '/')}
   ${await section('contact', '/')}`;
 }
 const pages = [
-  { route: '/', title: '武汉悟佳教育咨询有限公司 · 让校园创造力，走向真实世界', description: '以教育为起点，连接 AI 工程能力与跨学科人才。探索悟学习、Campus AI、投镜与 AI+X 智创工场。', body: await home(), className: 'home-page' },
-  { route: '/about/', active: 'about', title: '认识悟佳 · 公司与业务体系', description: '了解武汉悟佳教育咨询有限公司的教育产品、AI 应用与跨学科实践，以及产品、工作流和团队经验的长期积累。', body: await section('approach', '/about/', '认识悟佳 / ABOUT WUJIA') + await section('assets', '/about/') + await section('contact', '/about/') },
+  { route: '/', title: '武汉悟佳教育咨询有限公司 · 让创意和想法成为现实', description: '以教育为首个应用场景，开展 AI 产品开发、技术服务与持续运营。依托模型与工程能力，组织跨专业团队，将真实需求推进为产品和项目。', body: await home(), className: 'home-page' },
   { route: '/products/', active: 'products', title: '产品与项目 · 悟学习、Campus AI 与投镜', description: '探索悟学习、Campus AI 与投镜，了解教育、开发和历史复盘场景中的产品实践与不同版本。', body: productBackground(`${breadcrumbs([['产品与项目']])}<div class="section-head"><div><p class="eyebrow">产品与项目 / PRODUCTS & PROJECTS</p><h1>聚焦真实需求，<br>构建应用价值。</h1></div><p class="section-intro">教育、开发与历史复盘。<br>选择一个产品，了解它的功能、版本与实际应用。</p></div>${productCards()}`, 'page-opening product-list-page') },
-  { route: '/ai/', active: 'ai', title: 'AI 能力 · 从模型到工程交付', description: '围绕模型与资源、Agent 与工作流、工程与交付，了解悟佳如何组织 AI 与专业工具完成实际任务。', body: await section('capabilities', '/ai/', 'AI 能力 / AI, PUT TO WORK') },
-  { route: '/studio/', active: 'studio', title: 'AI+X 共创 · 智创工场与项目实践', description: '从湖北大学的校园实践出发，连接不同专业伙伴，了解 AI+X 智创工场的实践方向与项目实施方法。', body: await section('studio', '/studio/', 'AI+X 共创 / CO-CREATE') + await section('method', '/studio/') },
-  { route: '/vision/', active: 'vision', title: '发展愿景 · 从校园走向更广阔的协作', description: '以产品和场景为起点，在持续交付中积累方法，逐步探索连接高校人才与真实产业需求的 AI 协作网络。', body: await section('vision', '/vision/', '发展愿景 / A LONGER VIEW') },
+  { route: '/studio/', active: 'studio', title: 'AI+X 共创 · 跨专业协作与 AI 工程能力', description: '以悟学习、Campus AI 与投镜的产品实践为基础，介绍模型接入、本地部署、AI 编程、业务系统开发与跨专业共创的具体分工和交付方式。', body: await section('studio', '/studio/', 'AI+X 共创 / CO-CREATE') + await section('capabilities', '/studio/') + await section('method', '/studio/') },
+  { route: '/vision/', active: 'vision', title: '发展愿景 · 从校园走向更广阔的协作', description: '从悟学习、Campus AI 与投镜的现有实践出发，完善产品与用户服务，积累可复用方法和项目团队，逐步探索独立业务及跨校园、跨行业协作。', body: await section('vision', '/vision/', '发展愿景 / A LONGER VIEW') },
   { route: '/films/', active: 'films', title: '项目短片 · 看见产品的实际应用', description: '观看悟学习学校版、教培机构版、Campus AI HUBU 校园版、KCode 商业版与投镜的五支产品宣传片。', body: await section('films', '/films/', '项目短片 / WATCH & EXPLORE'), hasVideo: true }
 ];
 for (const p of products) pages.push({route: `/products/${p.slug}/`, active: 'products', title: `${p.title} · ${p.tagline}`, description: p.summary, body: await productDetail(p), hasVideo: true});
@@ -126,9 +126,26 @@ await write('legacy.js', `(() => {
     const url = new URL(target, location.origin);
     const edition = new URLSearchParams(location.search).get('edition');
     if (edition && !url.search && /^\\/products\\/(campus-ai|wuxuexi)\\/$/.test(url.pathname)) url.searchParams.set('edition', edition);
-    location.replace(url.pathname + url.search + url.hash);
+    const destination = url.pathname + url.search + url.hash;
+    if (destination !== location.pathname + location.search + location.hash) location.replace(destination);
   }
   redirect();
   window.addEventListener('hashchange', redirect);
 })();\n`);
-console.log(`Built ${pages.length} pages from shared templates and approved content.`);
+for (const page of compatibilityPages) {
+  await write(page.route.slice(1) + 'index.html', `<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><meta name="description" content="${page.title}，页面地址已更新。正在带您前往对应内容，也可以通过页面中的继续链接手动打开。"><title>${page.title} — 悟佳</title><link rel="canonical" href="${page.destination}"><link rel="stylesheet" href="/styles.css"><script src="/redirects.js" defer></script></head><body class="compatibility-page"><main class="redirect-notice"><p class="eyebrow">WUJIA</p><h1>${page.title}</h1><p>正在为您打开对应内容。</p><a id="continue-link" class="text-link" href="${page.destination}">继续浏览</a></main></body></html>\n`);
+}
+await write('redirects.js', `(() => {
+  const pages = ${JSON.stringify(compatibilityPages)};
+  const route = location.pathname.replace(/index\\.html$/, '').replace(/\\/?$/, '/');
+  const page = pages.find(page => page.route === route);
+  if (!page) return;
+  const target = page.fragments[location.hash.slice(1)] || page.destination;
+  const url = new URL(target, location.origin);
+  url.search = location.search;
+  const destination = url.pathname + url.search + url.hash;
+  document.getElementById('continue-link').href = destination;
+  location.replace(destination);
+})();\n`);
+console.log(`Built ${pages.length} content pages and ${compatibilityPages.length} compatibility pages from shared templates.`);

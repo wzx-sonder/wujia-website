@@ -29,10 +29,10 @@ export const products = [
 
 // Compatibility for incoming links shared before the multipage website.
 export const legacyRoutes = {
-  approach: '/about/', company: '/about/', assets: '/about/#assets', contact: '/about/#contact',
+  company: '/#approach', overview: '/#approach',
   products: '/products/', wuxuexi: '/products/wuxuexi/', campus: '/products/campus-ai/',
   kcode: '/products/campus-ai/?edition=kcode', toujing: '/products/toujing/',
-  capabilities: '/ai/', workflow: '/ai/#workflow', studio: '/studio/',
+  capabilities: '/studio/#capabilities', workflow: '/studio/#workflow', studio: '/studio/',
   scenarios: '/studio/#scenarios', method: '/studio/#method', collaboration: '/studio/#collaboration',
   vision: '/vision/', possibility: '/vision/#possibility', films: '/films/'
 };
