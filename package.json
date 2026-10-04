@@ -1,0 +1,9 @@
+{
+  "name": "wujia-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs"
+  }
+}
