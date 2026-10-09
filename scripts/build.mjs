@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { products, legacyRoutes } from '../src/products.mjs';
 import { competitions } from '../src/competitions.mjs';
@@ -8,7 +9,7 @@ import { entries, mainNavigation, pageHierarchy, compatibilityPages, playLabel }
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = path.join(root, 'dist');
-const read = name => fs.readFile(path.join(root, 'src', name), 'utf8');
+const read = async name => (await fs.readFile(path.join(root, 'src', name), 'utf8')).replaceAll('\r\n', '\n');
 const write = async (name, text) => {
   const destination = path.join(dist, name);
   await fs.mkdir(path.dirname(destination), { recursive: true });
@@ -166,4 +167,25 @@ await write('redirects.js', `(() => {
   document.getElementById('continue-link').href = destination;
   location.replace(destination);
 })();\n`);
+// A new document must never reuse an older CSS/JS response at a fixed URL.
+// Keep the stable aliases for previously opened pages and use root-level hashed
+// files so relative CSS images retain their existing resolution.
+const assetNames = ['styles.css', 'content.js', 'app.js', 'legacy.js', 'redirects.js'];
+const versionedAssets = new Map();
+for (const name of assetNames) {
+  const contents = await fs.readFile(path.join(dist, name));
+  const hash = createHash('sha256').update(contents).digest('hex').slice(0, 16);
+  const extension = path.extname(name);
+  const versionedName = `${name.slice(0, -extension.length)}.${hash}${extension}`;
+  await fs.writeFile(path.join(dist, versionedName), contents);
+  versionedAssets.set(name, versionedName);
+}
+for (const page of [...pages, ...compatibilityPages]) {
+  const filename = page.route.slice(1) + 'index.html';
+  let html = await fs.readFile(path.join(dist, filename), 'utf8');
+  for (const [name, versionedName] of versionedAssets) {
+    html = html.replaceAll(`"/${name}"`, `"/${versionedName}"`);
+  }
+  await write(filename, html);
+}
 console.log(`Built ${pages.length} content pages and ${compatibilityPages.length} compatibility pages from shared templates.`);

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { legacyRoutes } from '../src/products.mjs';
@@ -29,7 +30,17 @@ for (const file of pages) {
   const compatibility = compatibilityFiles.has(file.replaceAll('\\', '/'));
   assert.equal((html.match(/data-menu=/g) || []).length, compatibility ? 0 : 2, `${file}: product and competition dropdowns`);
   assert(!html.includes('menu-studio'), `${file}: no studio dropdown`);
-  if (compatibility) assert(html.includes('id="continue-link"') && html.includes('src="/redirects.js"') && !html.includes('site-header'), `${file}: lightweight compatibility page`);
+  if (compatibility) assert(html.includes('id="continue-link"') && /src="\/redirects\.[a-f0-9]{16}\.js"/.test(html) && !html.includes('site-header'), `${file}: lightweight compatibility page`);
+  // Rendering depends on a matched document + asset version, even with an old cache.
+  const resources = [...html.matchAll(/(?:href|src)="\/((?:styles|app|content|legacy|redirects)[^"/]*\.(?:css|js))"/g)];
+  assert.equal(resources.length, compatibility ? 2 : file === 'index.html' ? 4 : 3, `${file}: shared assets`);
+  for (const [, name] of resources) {
+    const match = /^(styles|app|content|legacy|redirects)\.([a-f0-9]{16})\.(css|js)$/.exec(name);
+    assert(match, `${file}: asset URL must have a content hash: ${name}`);
+    const contents = await fs.readFile(path.join(root, name));
+    assert.equal(createHash('sha256').update(contents).digest('hex').slice(0, 16), match[2], `${file}: stale asset fingerprint`);
+    assert.deepEqual(contents, await fs.readFile(path.join(root, `${match[1]}.${match[3]}`)), `${file}: asset and alias differ`);
+  }
   documents.set(file.replaceAll('\\', '/'), { html, ids });
 }
 let linkCount = 0;
@@ -203,7 +214,13 @@ for (const [index, [, html]] of competitionCards.entries()) {
 }
 const kcoding = documents.get('competitions/kcoding-2026/index.html').html;
 for (const section of ['eligibility', 'schedule', 'tracks', 'requirements', 'submission', 'judging', 'awards', 'registration']) assert(kcoding.includes(`id="${section}"`), 'All eight original notice sections');
-assert(kcoding.includes('888元等值KCode额度＋一年Pro会员') && kcoding.includes('报名成功以邮件回复确认为准'), 'Award and registration conditions retained');
+assert(kcoding.includes('888元等值KCode额度＋一年ProMax会员') && kcoding.includes('报名成功以邮件回复确认为准'), 'Award and registration conditions retained');
+for (const [award, reward] of [
+  ['一等奖', 'ProMax会员1个月（129元）'],
+  ['二等奖', 'Pro会员1个月（99元）'],
+  ['三等奖', 'Plus会员1个月（29元）']
+]) assert(kcoding.includes(`<tr><th scope="row">${award}</th><td>每赛道1名，共4名</td><td>${reward}</td></tr>`), `${award}: current membership tier and price`);
+assert(!/超值会员|49元会员|一年Pro会员/.test(kcoding), 'No superseded membership names');
 assert(kcoding.includes('mailto:2519552236@qq.com'), 'Email registration contact');
 const competitionAssets = files.filter(file => file.replaceAll('\\', '/').startsWith('assets/competitions/'));
 assert(competitionAssets.filter(file => /\.(xlsx|png|jpe?g|pdf)$/i.test(file)).length === 0, 'Only approved registration attachment is shipped');
