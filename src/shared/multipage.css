@@ -110,3 +110,53 @@
 .vision-criteria dd{margin:0}
 @media(max-width:1000px){.practice-grid{gap:16px}.practice-grid article{padding:24px}.vision-criteria{gap:36px;padding:32px}.studio-section .scenario-heading{display:block}.studio-section .scenario-heading p{margin-top:12px}}
 @media(max-width:700px){.practice-grid{grid-template-columns:1fr}.practice-grid article{padding:26px}.studio-intro p{font-size:16px}.studio-section .scenario-heading{margin-top:44px}.studio-section .scenario-heading h3{font-size:22px}.studio-section .scenario-grid{grid-template-columns:1fr}.studio-section .scenario-grid small{margin-top:18px}.vision-criteria{grid-template-columns:1fr;gap:30px;padding:26px;margin-top:44px}.vision-criteria h3{font-size:27px}.vision-priorities{font-size:14px}.vision-path p,.vision-criteria p,.vision-criteria dd{font-size:16px}}
+/* Competition cards and the formal, text-only notice. */
+.competition-list-page{min-height:calc(100svh - var(--header-height))}
+.competition-list-page .section-intro{color:#d0dce3;font-size:16px}
+.competition-list{display:grid;gap:32px}
+.products-section .competition-card{display:grid;grid-template-columns:1.2fr 1fr;gap:56px;margin:0;padding:44px}
+.competition-summary{min-width:0}
+.competition-summary .eyebrow{font-size:13px;color:#8b7455;letter-spacing:.13em}
+.competition-summary h2{font-size:clamp(30px,3vw,42px);margin:20px 0;letter-spacing:-.035em}
+.competition-lead{font-size:17px;color:#52646f;line-height:1.95;max-width:560px}
+.competition-facts{margin:28px 0 24px;font-size:16px}
+.competition-facts>div{display:grid;grid-template-columns:5em 1fr;gap:16px;margin-top:12px}
+.competition-facts dt{color:#768187}.competition-facts dd{margin:0;color:#263d4a}
+.competition-tracks{display:flex;flex-wrap:wrap;gap:8px 10px;list-style:none;padding:0;margin:0}
+.competition-tracks li{font-size:14px;border:1px solid #c8d1d4;color:#445c69;border-radius:24px;padding:4px 13px}
+.competition-schedule{min-width:0;border-left:1px solid #cbd3d6;padding-left:44px;display:flex;flex-direction:column;align-items:flex-start}
+.competition-period-label{font-size:14px;color:#6a7981}.competition-period{font-size:clamp(23px,2.4vw,32px);font-weight:500;line-height:1.5;margin-top:6px;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+.competition-schedule dl{margin:25px 0 30px;width:100%;font-size:15px}
+.competition-schedule dl>div{display:flex;flex-wrap:wrap;gap:2px 14px;justify-content:space-between;padding:11px 0;border-top:1px solid #d4dcdf}
+.competition-schedule dt{color:#677982}.competition-schedule dd{margin:0;color:#263d4a}
+.competition-schedule .button{margin-top:auto;font-size:15px;min-height:46px;padding:12px 28px}
+.competition-notice-page{max-width:1240px;padding-top:32px;padding-bottom:86px}
+.notice-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:48px;align-items:start}
+.notice-category{background:#172c3a;color:#fff;border-top:3px solid #b49a78;font-size:24px;font-weight:500;text-align:center;padding:29px 14px;line-height:1.5}
+.competition-notice{min-width:0}
+.notice-heading{text-align:center;margin-bottom:38px}
+.notice-heading h1{font-size:clamp(25px,2.5vw,34px);line-height:1.6;font-weight:550;letter-spacing:0;padding:13px 0 22px;border-bottom:1px solid #dce0e0}
+.notice-heading p{font-size:14px;color:#66777f;margin-top:14px}
+.notice-body{font-size:17px;line-height:2;color:#35454e;overflow-wrap:anywhere}
+.notice-body h2{font-size:21px;font-weight:550;line-height:1.6;letter-spacing:0;margin:32px 0 15px;color:#172c3a}
+.notice-body p+p{margin-top:14px}
+.notice-body a{color:#395e76;text-decoration:underline;text-underline-offset:4px}
+.notice-tip{border-left:2px solid #b49a78;padding:13px 18px;background:#f6f3ed;font-size:16px}
+.competition-table-wrap{margin:20px 0}
+.competition-table-wrap table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:16px;line-height:1.8}
+.competition-table-wrap th,.competition-table-wrap td{padding:14px;border:1px solid #d7dee0;text-align:left;vertical-align:top;font-weight:400}
+.competition-table-wrap thead th{background:#f0f3f4;font-weight:550;color:#263d4a}
+.competition-table-wrap th:first-child{width:21%}.competition-table-wrap thead th:nth-child(2){width:29%}
+.notice-body .notice-signature{text-align:right;margin-top:32px;color:#263d4a}
+.notice-body .notice-signature+.notice-signature{margin-top:3px}
+.notice-attachments{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;font-size:16px;border-top:1px dashed #bbc7cd;border-bottom:1px dashed #bbc7cd;padding:22px 0;margin-top:38px;overflow-wrap:anywhere}
+.notice-attachments a{color:#395e76;text-decoration:underline;text-underline-offset:5px;font-weight:550}
+.notice-attachments small{font-size:14px;color:#78878f;margin-left:auto}
+.notice-return{margin-top:28px}
+.notice-return .text-link{font-size:14px}
+@media(min-width:1241px){.header-inner{column-gap:16px}.main-nav{gap:20px}}
+@media(min-width:1241px) and (max-width:1350px){.header-inner{width:calc(100% - 64px)}.header-inner>.brand{font-size:13px;gap:9px}.header-inner>.brand .brand-logo{width:44px;height:34px}.main-nav{gap:16px}.main-nav .nav-link{font-size:12px}}
+@media(max-width:1000px){.products-section .competition-card{padding:32px;gap:32px}.competition-schedule{padding-left:28px}.notice-layout{grid-template-columns:145px minmax(0,1fr);gap:32px}.notice-category{font-size:21px;padding:25px 10px}}
+@media(max-width:700px){.products-section .competition-card{grid-template-columns:1fr;padding:28px;gap:30px}.competition-schedule{border-left:0;border-top:1px solid #cbd3d6;padding:26px 0 0}.competition-schedule dl{margin:20px 0 25px}.competition-schedule .button{margin-top:0}.competition-list-page .section-intro{margin-top:20px}.competition-summary h2{font-size:32px}.competition-period{font-size:27px}.notice-layout{display:block}.notice-category{display:inline-block;font-size:16px;padding:8px 18px;margin-bottom:18px}.competition-notice-page{padding-top:24px;padding-bottom:64px}.notice-heading{margin-bottom:28px}.notice-heading h1{padding-top:7px}.notice-body{font-size:16px;line-height:1.95}.notice-body h2{font-size:20px;margin-top:28px}.competition-table-wrap table{font-size:14px}.competition-table-wrap th,.competition-table-wrap td{padding:10px 8px}.notice-tip{font-size:15px;padding:12px 14px}.notice-attachments small{margin-left:0;width:100%}}
+@media(max-width:600px){.main-nav{height:auto;min-height:44px;gap:10px;flex-wrap:wrap;justify-content:center}.main-nav .nav-link{font-size:12px}.nav-dropdown{width:22px}.competition-lead,.competition-facts{font-size:16px}.competition-facts>div{grid-template-columns:1fr;gap:2px}.products-section .competition-card{padding:26px}.competition-schedule dl>div{display:block}.competition-schedule dd{margin-top:4px}}
+@media(max-width:370px){.main-nav{gap:0 4px}.main-nav .nav-link{font-size:11px}.nav-dropdown{width:20px}.products-section .competition-card{padding:23px}.competition-period{font-size:24px}}

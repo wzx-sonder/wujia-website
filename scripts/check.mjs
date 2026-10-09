@@ -4,12 +4,13 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { legacyRoutes } from '../src/products.mjs';
+import { competitions } from '../src/competitions.mjs';
 import { entries, mainNavigation, compatibilityPages } from '../src/navigation.mjs';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const files = await fs.readdir(root, { recursive: true });
 const pages = files.filter(file => file.endsWith('.html'));
-assert.equal(pages.length, 11, 'Eight content pages and three compatibility pages');
+assert.equal(pages.length, 9 + competitions.length + compatibilityPages.length, 'Content pages, competition notices and compatibility pages');
 const compatibilityFiles = new Set(compatibilityPages.map(page => page.route.slice(1) + 'index.html'));
 const documents = new Map();
 const titles = new Set();
@@ -26,7 +27,7 @@ for (const file of pages) {
     for (const id of match[1].split(' ')) assert(ids.includes(id), `${file}: missing ARIA target ${id}`);
   }
   const compatibility = compatibilityFiles.has(file.replaceAll('\\', '/'));
-  assert.equal((html.match(/data-menu=/g) || []).length, compatibility ? 0 : 1, `${file}: only product dropdown`);
+  assert.equal((html.match(/data-menu=/g) || []).length, compatibility ? 0 : 2, `${file}: product and competition dropdowns`);
   assert(!html.includes('menu-studio'), `${file}: no studio dropdown`);
   if (compatibility) assert(html.includes('id="continue-link"') && html.includes('src="/redirects.js"') && !html.includes('site-header'), `${file}: lightweight compatibility page`);
   documents.set(file.replaceAll('\\', '/'), { html, ids });
@@ -75,13 +76,15 @@ const text = html => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 const navigation = [
   ['products', '产品与项目', '聚焦真实需求'],
   ['studio', 'AI+X 共创', 'AI 应用研发与'],
+  ['competitions', '竞赛活动', '竞赛活动'],
   ['vision', '发展愿景', '从校园出发'], ['films', '项目短片', '让产品']
 ];
 const detailEntries = [
   ['wuxuexi', '悟学习详情', '悟学习'], ['campus-ai', 'Campus AI 详情', 'Campus AI'], ['toujing', '投镜详情', '投镜']
 ];
 const labelsByUrl = new Map([
-  ...navigation.map(([key, label]) => [`/${key}/`, [label, ...(key === 'products' ? ['返回产品列表'] : [])]]),
+  ...navigation.map(([key, label]) => [`/${key}/`, [label, ...(key === 'products' ? ['返回产品列表'] : key === 'competitions' ? ['返回竞赛列表'] : [])]]),
+  ...competitions.map(c => [c.href, [c.title, '查看大赛通知']]),
   ...detailEntries.map(([slug, label]) => [`/products/${slug}/`, [label]]),
   ['/products/campus-ai/?edition=campus', ['Campus AI · HUBU 校园版']],
   ['/products/campus-ai/?edition=kcode', ['KCode 商业版']]
@@ -93,7 +96,7 @@ for (const [file, { html }] of documents) {
     const allowed = labelsByUrl.get(link[1]);
     if (allowed) {
       // The menu's second span explains the version; its first text is the action.
-      const label = text(link[2].replace(/<span>[\s\S]*?<\/span>/g, ''));
+      const label = text(link[2].replace(/<(span|small)>[\s\S]*?<\/\1>/g, ''));
       assert(allowed.includes(label), `${file}: misleading entry ${label} → ${link[1]}`);
     }
   }
@@ -103,7 +106,7 @@ for (const [file, { html }] of documents) {
   const footerNav = html.match(/<nav class="footer-links"[^>]*>([\s\S]*?)<\/nav>/)[1];
   for (const [nav, className] of [[mainNav, 'nav-link'], [footerNav, 'footer-link']]) {
     const labels = [...nav.matchAll(new RegExp(`<(?:a|span) class="${className}[^\"]*"[^>]*>(.*?)</(?:a|span)>`, 'gs'))].map(match => text(match[1]));
-    assert.deepEqual(labels, mainNavigation.map(key => entries[key].label), `${file}: four canonical columns`);
+    assert.deepEqual(labels, mainNavigation.map(key => entries[key].label), `${file}: five canonical columns`);
   }
   const route = '/' + file.replace(/index\.html$/, '');
   const current = route === '/' ? ['home', '首页'] : navigation.find(([key]) => mainNavigation.includes(key) && route === `/${key}/`);
@@ -119,6 +122,17 @@ for (const [file, { html }] of documents) {
     assert(mainNav.includes('href="/products/"') && footerNav.includes('href="/products/"'), `${file}: list remains reachable`);
     assert(html.includes('返回产品列表') && html.includes('aria-label="面包屑"'), `${file}: return paths`);
     assert(html.includes('播放宣传片'), `${file}: explicit video action`);
+  }
+  if (file.startsWith('competitions/') && file !== 'competitions/index.html') {
+    for (const nav of [mainNav, footerNav]) assert(nav.includes('is-ancestor" href="/competitions/"'), `${file}: competition parent remains reachable`);
+    assert(html.includes('返回竞赛列表') && html.includes('aria-label="面包屑"'), `${file}: notice return paths`);
+  }
+  const competitionMenu = html.match(/<div class="mega-menu" id="menu-competitions" hidden><div class="mega-inner"><div>[\s\S]*?<\/div><div class="menu-links">(.*?)<\/div>/s)?.[1];
+  assert(competitionMenu, `${file}: competition shortcuts use the shared full-width panel`);
+  assert(!mainNav.includes('id="menu-competitions"'), `${file}: competition panel is outside the nav item`);
+  for (const competition of competitions) {
+    assert(competitionMenu.includes(competition.title), `${file}: competition shortcut title`);
+    assert(competitionMenu.includes(route === competition.href ? 'aria-current="page"' : `href="${competition.href}"`), `${file}: competition shortcut destination`);
   }
   assert(html.includes('href="/products/campus-ai/?edition=campus"') && html.includes('href="/products/campus-ai/?edition=kcode"'), `${file}: explicit edition shortcuts`);
 }
@@ -169,4 +183,28 @@ for (const file of await fs.readdir(path.join(root, '../src/sections'))) {
   const html = await fs.readFile(path.join(root, '../src/sections', file), 'utf8');
   for (const [, id] of html.matchAll(/href="#([^"]+)"/g)) assert(!(id in legacyRoutes), `${file}: obsolete fragment in current content`);
 }
-console.log(`Verified 8 content pages and 3 compatibility pages, ${linkCount} internal links/assets, four-column navigation, integrated AI content, single-entry cards, all legacy routes and five local films.`);
+const competitionList = documents.get('competitions/index.html').html;
+const competitionCards = [...competitionList.matchAll(/<article class="product competition-card">(.*?)<\/article>/gs)];
+assert.equal(competitionCards.length, competitions.length, 'One card per configured competition');
+for (const [index, [, html]] of competitionCards.entries()) {
+  const competition = competitions[index];
+  assert.equal((html.match(/<a\b/g) || []).length, 1, 'Competition cards have one detail action');
+  assert(html.includes(`href="${competition.href}"`) && html.includes('查看大赛通知'));
+  assert(!/<img\b|poster=|overview-image/.test(html), 'No competition posters or image placeholders');
+  for (const date of competition.dates) assert(html.includes(date.datetime) && html.includes(date.text), 'Competition deadlines retained');
+  for (const track of competition.tracks) assert(html.includes(track), 'Competition tracks retained');
+  const notice = documents.get(competition.href.slice(1) + 'index.html').html;
+  assert.equal(text(notice.match(/<h1[^>]*>(.*?)<\/h1>/s)[1]), competition.noticeTitle);
+  assert(notice.includes(`download="${competition.attachment.label}"`) && notice.includes(`href="${competition.attachment.href}"`), 'Downloadable original registration form');
+  const docx = await fs.readFile(path.join(root, competition.attachment.href.slice(1)));
+  assert(docx[0] === 0x50 && docx[1] === 0x4b, 'Registration attachment is a DOCX archive');
+  assert(!/<img\b/.test(notice.match(/<main[^>]*>(.*?)<\/main>/s)[1]), 'Text-only competition notice');
+  assert(!/浏览次数|下载次数|已下载\d|工作表\.xlsx/.test(notice), 'No invented counters or internal workbook');
+}
+const kcoding = documents.get('competitions/kcoding-2026/index.html').html;
+for (const section of ['eligibility', 'schedule', 'tracks', 'requirements', 'submission', 'judging', 'awards', 'registration']) assert(kcoding.includes(`id="${section}"`), 'All eight original notice sections');
+assert(kcoding.includes('888元等值KCode额度＋一年Pro会员') && kcoding.includes('报名成功以邮件回复确认为准'), 'Award and registration conditions retained');
+assert(kcoding.includes('mailto:2519552236@qq.com'), 'Email registration contact');
+const competitionAssets = files.filter(file => file.replaceAll('\\', '/').startsWith('assets/competitions/'));
+assert(competitionAssets.filter(file => /\.(xlsx|png|jpe?g|pdf)$/i.test(file)).length === 0, 'Only approved registration attachment is shipped');
+console.log(`Verified ${pages.length - compatibilityPages.length} content pages and ${compatibilityPages.length} compatibility pages, ${linkCount} internal links/assets, five-column navigation, competition notices and attachments, all legacy routes and five local films.`);

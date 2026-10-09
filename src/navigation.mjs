@@ -6,6 +6,7 @@ export const entries = {
   products: { label: '产品与项目', href: '/products/' },
   ai: { label: 'AI 能力', href: '/studio/#capabilities' },
   studio: { label: 'AI+X 共创', href: '/studio/' },
+  competitions: { label: '竞赛活动', href: '/competitions/' },
   vision: { label: '发展愿景', href: '/vision/' },
   films: { label: '项目短片', href: '/films/' },
   wuxuexi: { label: '悟学习详情', href: '/products/wuxuexi/' },
@@ -14,11 +15,11 @@ export const entries = {
   hubu: { label: 'Campus AI · HUBU 校园版', href: '/products/campus-ai/?edition=campus' },
   kcode: { label: 'KCode 商业版', href: '/products/campus-ai/?edition=kcode' }
 };
-export const mainNavigation = ['home', 'products', 'studio', 'vision'];
+export const mainNavigation = ['home', 'products', 'studio', 'competitions', 'vision'];
 // Page ownership also defines breadcrumbs and selected ancestor navigation.
 export const pageHierarchy = {
   products: ['products'], studio: ['studio'],
-  vision: ['vision'], films: ['films']
+  competitions: ['competitions'], vision: ['vision'], films: ['films']
 };
 export const compatibilityPages = [
   { route: '/about/', title: '认识悟佳已并入首页', destination: '/#approach', fragments: { approach: '/#approach', company: '/#approach', assets: '/#assets', contact: '/#contact' } },

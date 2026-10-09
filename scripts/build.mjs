@@ -3,6 +3,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { products, legacyRoutes } from '../src/products.mjs';
+import { competitions } from '../src/competitions.mjs';
 import { entries, mainNavigation, pageHierarchy, compatibilityPages, playLabel } from '../src/navigation.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -44,12 +45,21 @@ const brand = `<a class="brand" href="/" aria-label="武汉悟佳教育咨询有
 function header(page) {
   const navigation = mainNavigation.map(key => {
     const link = navEntry(key, page, 'nav-link');
-    return key === 'products' ? `<div class="nav-product-group">${link}<button class="nav-dropdown" type="button" data-menu="products" aria-label="展开产品快捷入口" aria-expanded="false" aria-controls="menu-products">${icon('chevron')}</button></div>` : link;
+    if (key === 'products' || key === 'competitions') {
+      const label = key === 'products' ? '展开产品快捷入口' : '展开竞赛快捷入口';
+      return `<div class="nav-product-group">${link}<button class="nav-dropdown" type="button" data-menu="${key}" aria-label="${label}" aria-expanded="false" aria-controls="menu-${key}">${icon('chevron')}</button></div>`;
+    }
+    return link;
   }).join('');
   const films = page.route === entries.films.href ? navEntry('films', page, 'header-link') : entryLink('films', 'header-link');
   const shortcuts = [['wuxuexi', '学校版与教培机构版'], ['hubu', '模型资源与工程工具'], ['kcode', '同一产品，面向商业应用'], ['toujing', '历史投资复盘 · 测试验证中']].map(([key, description]) => `<a href="${entries[key].href}">${entries[key].label} <span>${description}</span></a>`).join('');
+  const competitionShortcuts = competitions.map(c => {
+    const inner = `${escape(c.title)}<span>AI 辅助编程 · ${escape(c.period)}</span>`;
+    return page.route === c.href ? `<span class="competition-shortcut menu-current" aria-current="page">${inner}</span>` : `<a class="competition-shortcut" href="${c.href}">${inner}</a>`;
+  }).join('');
+  const menu = (key, eyebrow, heading, items) => `<div class="mega-menu" id="menu-${key}" hidden><div class="mega-inner"><div><span class="eyebrow">${eyebrow}</span><h2>${heading}</h2></div><div class="menu-links">${items}</div></div></div>`;
   return `<header class="site-header"><div class="header-inner">${brand}<nav class="main-nav" aria-label="主导航">${navigation}</nav>${films}</div>
-  <div class="mega-menu" id="menu-products" hidden><div class="mega-inner"><div><span class="eyebrow">PRODUCTS & PROJECTS</span><h2>真实的问题，<br>正在发生的实践。</h2></div><div class="menu-links">${shortcuts}</div></div></div><div class="reading-progress" aria-hidden="true"></div></header><div class="menu-shade" hidden></div>`;
+  ${menu('products', 'PRODUCTS & PROJECTS', '真实的问题，<br>正在发生的实践。', shortcuts)}${menu('competitions', 'COMPETITIONS', '竞赛信息与<br>参赛指引', competitionShortcuts)}<div class="reading-progress" aria-hidden="true"></div></header><div class="menu-shade" hidden></div>`;
 }
 function links(html) {
   // Content writes explicit page URLs; tokens only share the visible entry label.
@@ -98,6 +108,12 @@ async function home() {
   ${await section('assets', '/')}
   ${await section('contact', '/')}`;
 }
+function competitionCards() {
+  return `<div class="competition-list">${competitions.map(c => `<article class="product competition-card"><div class="competition-summary"><p class="eyebrow">${escape(c.year)} / VIBE CODING</p><h2>${escape(c.title)}</h2><p class="competition-lead">${escape(c.summary)}</p><dl class="competition-facts"><div><dt>参赛对象</dt><dd>${escape(c.audience)}</dd></div><div><dt>参赛形式</dt><dd>${escape(c.team)}</dd></div></dl><ul class="competition-tracks" aria-label="竞赛赛道">${c.tracks.map(track => `<li>${escape(track)}</li>`).join('')}</ul></div><div class="competition-schedule"><p class="competition-period-label">大赛时间</p><p class="competition-period">${escape(c.period)}</p><dl>${c.dates.map(date => `<div><dt>${escape(date.label)}</dt><dd><time datetime="${date.datetime}">${escape(date.text)}</time></dd></div>`).join('')}</dl><a class="button ink" href="${c.href}" aria-label="查看 ${escape(c.title)}通知">查看大赛通知</a></div></article>`).join('')}</div>`;
+}
+async function competitionDetail(c) {
+  return `<section class="section wrap competition-notice-page">${breadcrumbs([['竞赛活动', entries.competitions.href], [c.title]])}<div class="notice-layout"><aside class="notice-category" aria-label="内容分类">竞赛通知</aside><article class="competition-notice" aria-labelledby="notice-title"><header class="notice-heading"><h1 id="notice-title">${escape(c.noticeTitle)}</h1><p>主办方：${escape(c.organizer)}</p></header><div class="notice-body">${await read(c.noticeFile)}</div><div class="notice-attachments"><span>附件：</span><a href="${c.attachment.href}" download="${escape(c.attachment.label)}">${escape(c.attachment.label)}</a><small>Word 报名表</small></div><div class="notice-return"><a class="text-link" href="${entries.competitions.href}">返回竞赛列表</a></div></article></div></section>`;
+}
 const pages = [
   { route: '/', title: '武汉悟佳教育咨询有限公司 · 让创意和想法成为现实', description: '以教育为首个应用场景，开展 AI 产品开发、技术服务与持续运营。依托模型与工程能力，组织跨专业团队，将真实需求推进为产品和项目。', body: await home(), className: 'home-page' },
   { route: '/products/', active: 'products', title: '产品与项目 · 悟学习、Campus AI 与投镜', description: '探索悟学习、Campus AI 与投镜，了解教育、开发和历史复盘场景中的产品实践与不同版本。', body: productBackground(`${breadcrumbs([['产品与项目']])}<div class="section-head"><div><p class="eyebrow">产品与项目 / PRODUCTS & PROJECTS</p><h1>聚焦真实需求，<br>构建应用价值。</h1></div><p class="section-intro">教育、开发与历史复盘。<br>选择一个产品，了解它的功能、版本与实际应用。</p></div>${productCards()}`, 'page-opening product-list-page') },
@@ -105,6 +121,8 @@ const pages = [
   { route: '/vision/', active: 'vision', title: '发展愿景 · 从校园走向更广阔的协作', description: '从悟学习、Campus AI 与投镜的现有实践出发，完善产品与用户服务，积累可复用方法和项目团队，逐步探索独立业务及跨校园、跨行业协作。', body: await section('vision', '/vision/', '发展愿景 / A LONGER VIEW') },
   { route: '/films/', active: 'films', title: '项目短片 · 看见产品的实际应用', description: '观看悟学习学校版、教培机构版、Campus AI HUBU 校园版、KCode 商业版与投镜的五支产品宣传片。', body: await section('films', '/films/', '项目短片 / WATCH & EXPLORE'), hasVideo: true }
 ];
+pages.push({ route: entries.competitions.href, active: 'competitions', title: '竞赛活动 · KCoding 大赛与赛事通知', description: '了解悟佳竞赛活动、参赛对象、比赛安排与报名方式。查看 KCoding 大赛正式通知，下载报名表，按通知要求完成邮件报名及作品提交。', body: productBackground(`${breadcrumbs([['竞赛活动']])}<div class="section-head"><div><p class="eyebrow">竞赛活动 / COMPETITIONS</p><h1>竞赛活动</h1></div><p class="section-intro">集中发布竞赛通知、赛程安排与参赛资料，明确作品要求、评审规则和报名方式。</p></div>${competitionCards()}`, 'page-opening competition-list-page') });
+for (const c of competitions) pages.push({ route: c.href, active: 'competitions', title: c.noticeTitle, description: `${c.summary}大赛时间：${c.period}。${c.dates.map(date => date.label + '：' + date.text).join('；')}。`, body: await competitionDetail(c) });
 for (const p of products) pages.push({route: `/products/${p.slug}/`, active: 'products', title: `${p.title} · ${p.tagline}`, description: p.summary, body: await productDetail(p), hasVideo: true});
 
 for (const page of pages) {
